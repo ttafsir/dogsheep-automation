@@ -1,0 +1,14 @@
+events {
+    worker_connections  1024;
+}
+
+http {
+
+    server {
+        listen 80;
+        server_name {{ certbot_domain }};
+        return 301 https://{{ certbot_domain }}$request_uri;
+    }
+
+    include /etc/nginx/sites/*.conf;
+}

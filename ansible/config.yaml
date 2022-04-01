@@ -1,0 +1,35 @@
+---
+##################################################################################
+#                            Datasette settings                                  #
+##################################################################################
+datasette_username: "{{ lookup('env', 'DATASETTE_USERNAME') }}"
+datasette_enable_auth: true
+datasette_user_password: "{{ lookup('env', 'DATASETTE_PASSWORD') }}"
+datasette_port: 8001
+
+datasette_settings:
+  sql_time_limit_ms: 20000
+  facet_time_limit_ms: 5000
+  template_debug: 1
+  force_https_urls: 1
+
+##################################################################################
+#                            Dogsheep Stuff                                      #
+##################################################################################
+dogsheep_site_title: Tafsir's personal data service
+dogsheep_site_description: Personal data collection from public services
+dogsheep_user: dogsheep
+dogsheep_user_shell: /bin/bash
+dogsheep_dbs:
+  - twitter
+  - swarm
+  - photos
+  - pocket
+  - hacker-news
+  - memories
+
+##################################################################################
+#                            Certbot/Letsencrypt                                 #
+##################################################################################
+certbot_email: ttafsir@gmail.com
+certbot_domain: dogsheep.ttafsir.me

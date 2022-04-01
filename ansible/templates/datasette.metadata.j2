@@ -1,0 +1,14 @@
+{
+  "title": "{{ dogsheep_site_title }}",
+  "description": "{{ dogsheep_site_description }}",
+  "allow": {
+    "id": "{{ datasette_username }}"
+  },
+  "plugins": {
+    "datasette-auth-passwords": {
+      {{ datasette_username }}_password_hash: {
+          "$env": "DATASETTE_AUTH_PASSWORD_HASH"
+          }
+      }
+  }
+}

@@ -1,0 +1,11 @@
+---
+- name: Install Python3, nginx, and SQlite
+  ansible.builtin.apt:
+    name: "{{ installation_deps.base }}"
+
+- name: update cache and install certbot and python3-certbot-nginx
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 300
+    state: present
+    name: "{{ installation_deps.certbot }}"

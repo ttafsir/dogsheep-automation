@@ -1,0 +1,2 @@
+[dogsheep_hosts]
+dogsheep.ttafsir.me ansible_user=root

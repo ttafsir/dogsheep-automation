@@ -1,0 +1,83 @@
+---
+- name: Add the user 'dogsheep' with a shell, and create home directory
+  ansible.builtin.user:
+    name: "{{ dogsheep_user }}"
+    shell: "{{ dogsheep_user_shell }}"
+    state: present
+    create_home: true
+
+- name: As dogsheep user, As that user, created a virtual environment and install datasette
+  ansible.builtin.pip:
+    name: "{{ item }}"
+    virtualenv: /home/{{ dogsheep_user }}/datasette-venv
+    virtualenv_command: 'python3 -m venv'
+  loop: "{{ datasette_requirements }}"
+
+- name: build list of db files from dogsheep_dbs and append *.db to each item if needed
+  ansible.builtin.set_fact:
+    datasette_db_filenames: "{{ dogsheep_dbs | product(['db']) | map('join', '.') | list }}"
+
+- name: Create a set of blank SQLite database files
+  ansible.builtin.shell: |
+    sqlite3 /home/{{ dogsheep_user }}/{{ item }} vacuum
+  become: true
+  become_user: "{{ dogsheep_user }}"
+  loop: "{{ datasette_db_filenames }}"
+
+- name: Enable WAL mode on db files
+  ansible.builtin.shell: |
+    sqlite3 /home/{{ dogsheep_user }}/{{ item }} 'PRAGMA journal_mode=WAL;'
+  become: true
+  become_user: "{{ dogsheep_user }}"
+  loop: "{{ datasette_db_filenames }}"
+  register: enable_wal_result
+
+- name: generate secrets for datasette
+  ansible.builtin.set_fact:
+    datasette_secret: "{{ lookup('password', '/tmp/passwordfile length=32 chars=ascii_letters,digits,punctuation') }}"
+  no_log: true
+
+- name: generate secret hash for datasette user using `datasette hash-password`
+  ansible.builtin.shell: |
+    {{ datasette_bin }} hash-password --password {{ datasette_user_password }}
+  register: datasette_hash_password_result
+  vars:
+    datasette_bin: /home/{{ dogsheep_user }}/datasette-venv/bin/datasette
+  # no_log: true
+  when:
+    - datasette_enable_auth is defined and datasette_enable_auth
+    - datasette_user_password is defined and datasette_user_password
+
+- name: create /etc/systemd/system/datasette.service file
+  ansible.builtin.template:
+    src: datasette.service.j2
+    dest: /etc/systemd/system/datasette.service
+    trim_blocks: true
+
+- name: systemd-reload
+  ansible.builtin.systemd:
+    daemon_reload: true
+  become: true
+
+- name: create metadata file for datasette
+  ansible.builtin.template:
+    src: datasette.metadata.j2
+    dest: /home/{{ dogsheep_user }}/metadata.json
+    owner: "{{ dogsheep_user }}"
+    group: "{{ dogsheep_user }}"
+    mode: 0644
+    trim_blocks: true
+
+- name: start and enable the datasette service
+  ansible.builtin.systemd:
+    name: datasette
+    state: started
+    enabled: true
+
+- name: verify that datasette service is running at 127.0.0.1:{{ datasette_port }}
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ datasette_port }}/-/login"
+  register: datasette_status
+  until: datasette_status.status == 200
+  retries: 5
+  delay: 1

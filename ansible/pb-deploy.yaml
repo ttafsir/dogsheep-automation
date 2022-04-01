@@ -1,0 +1,48 @@
+#!/usr/bin/env ansible-playbook
+---
+- name: Deploy Dogsheep to Ubuntu hosts
+  hosts: dogsheep_hosts
+  gather_facts: false
+
+  vars:
+    systemd_dir: /etc/systemd/system
+    installation_deps:
+      base:
+        - python3-venv
+        - nginx
+        - sqlite
+      certbot:
+        - certbot
+        - python3-certbot-nginx
+    datasette_requirements:
+      - wheel
+      - datasette
+      - datasette-auth-passwords
+
+  tasks:
+    - name: load configuration vars from config.yaml file
+      include_vars: config.yaml
+
+    - name: prompt for credentials if needed and not already set from env
+      include_tasks: tasks/task-prompt-credentials.yaml
+      when:
+        - datasette_enable_auth is defined and datasette_enable_auth|bool == True
+        - (datasette_user_password is falsy) or (datasette_username is falsy)
+
+    - name: install dependencies
+      include_tasks: tasks/task-install_deps.yaml
+
+    - name: check if cert exists
+      stat:
+        path: /etc/letsencrypt/live/{{ certbot_domain }}/fullchain.pem
+      register: certbot_exists
+
+    - name: use letsencrypt to get an HTTPS certificate, if cert doesn't exist
+      include_tasks: tasks/task-certbot.yaml
+      when: not certbot_exists.stat.exists
+
+    - name: create and configure datasette service
+      include_tasks: tasks/task-datasette.yaml
+
+    - name: configure nginx
+      include_tasks: tasks/task-nginx.yaml

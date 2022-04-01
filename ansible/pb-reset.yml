@@ -1,0 +1,48 @@
+#!/usr/bin/env ansible-playbook
+---
+- name: Deploy Dogsheep to Ubuntu hosts
+  hosts: dogsheep_hosts
+  gather_facts: false
+
+  vars:
+    systemd_dir: /etc/systemd/system
+    installation_deps:
+      base:
+        - python3-venv
+        - nginx
+        - sqlite
+      certbot:
+        - certbot
+        - python3-certbot-nginx
+    datasette_requirements:
+      - wheel
+      - datasette
+      - datasette-auth-passwords
+
+  tasks:
+    - name: load configuration vars from config.yml file
+      include_vars: config.yaml
+
+    - name: stop services
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+      loop: ['nginx', 'datasette']
+
+    - name: remove packages
+      apt:
+        name: "{{ installation_deps.base }}"
+        state: absent
+
+    - name: Remove service files, binaries and data
+      file:
+        name: "{{ item }}"
+        state: absent
+      with_items:
+        - "{{ systemd_dir }}/datasette.service"
+        - "/etc/nginx/nginx.conf"
+        - "/etc/nginx/sites/nginx-datasette.conf"
+
+    - name: daemon_reload
+      systemd:
+        daemon_reload: true

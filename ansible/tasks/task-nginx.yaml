@@ -1,0 +1,25 @@
+---
+- name: generate nginx site config
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+
+- name: create sites directory
+  ansible.builtin.file:
+    path: /etc/nginx/sites
+    state: directory
+
+- name: datasette config
+  ansible.builtin.template:
+    src: nginx-datasette.conf.j2
+    dest: /etc/nginx/sites/nginx-datasette.conf
+
+- name: verify nginx config
+  ansible.builtin.command: nginx -t
+
+- name: enable Nginx service
+  ansible.builtin.systemd:
+    name: nginx
+    daemon_reload: true
+    enabled: true
+    state: started

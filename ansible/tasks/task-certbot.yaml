@@ -1,0 +1,16 @@
+---
+- name: register and agree to certbot TOS
+  ansible.builtin.shell: |
+    certbot register --agree-tos --email {{ certbot_email }} --non-interactive
+  register: certbot_register_result
+  ignore_errors: true
+
+- name: fail if certbot register failed for any reason other than an existing account
+  ansible.builtin.fail:
+    msg: "{{ certbot_register_result.stdout_lines | join('\n') }}"
+  when: certbot_register_result is failed and "duplicate account" not in certbot_register_result.stderr
+
+- name: get cert for domain {{ certbot_domain }}
+  ansible.builtin.shell: |
+    certbot --nginx -d {{ certbot_domain }} --non-interactive certonly
+  register: certbot_cert_result

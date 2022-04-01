@@ -1,0 +1,24 @@
+[Unit]
+Description=Datasette
+After=network.target
+
+[Service]
+Type=simple
+User={{ dogsheep_user }}
+Environment=DATASETTE_SECRET={{ datasette_secret }}
+{% if datasette_hash_password_result is defined %}
+Environment=DATASETTE_AUTH_PASSWORD_HASH='{{ datasette_hash_password_result.stdout }}'
+{% endif %}
+WorkingDirectory=/home/{{ dogsheep_user }}
+ExecStart=/home/{{ dogsheep_user }}/datasette-venv/bin/datasette serve -h 127.0.0.1 -p {{ datasette_port }} \
+    -m /home/{{ dogsheep_user }}/metadata.json \
+{% if datasette_settings is defined and datasette_settings %}
+{%   for setting, value in datasette_settings.items() %}
+    --setting {{ setting }} {{ value }} \
+{%   endfor %}
+{% endif %}
+    {{ datasette_db_filenames | join(' ') }}
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
