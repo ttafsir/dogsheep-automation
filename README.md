@@ -42,7 +42,7 @@ dogsheep.ttafsir.me ansible_user=root
 
 ### Export Environment Variables for your Login
 
-By default, the configuration value of `datasette_enable_auth` is set to `true` to require authentication to your instance. Set the following environment variables to set the username and password for your instance.
+By default, the configuration file [`config.yaml`](./ansible/config.yml) is set to require authentication to your instance. Set the following environment variables to set the username and password for your instance.
 
 ```sh
 export DATASETTE_USERNAME=<username>
